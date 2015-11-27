@@ -2,6 +2,7 @@ package com.example.securitydemo;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
@@ -54,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "onCreate: ", e);
             return;
         }
+
+        // Convert secret key to text
+        String keyText = Base64.encodeToString(secretKey.getEncoded(), Base64.DEFAULT);
 
         // Encrypt
         byte[] encryptedText;
