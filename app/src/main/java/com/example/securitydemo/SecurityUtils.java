@@ -11,6 +11,7 @@ import java.security.spec.KeySpec;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -20,13 +21,15 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class SecurityUtils {
 
-    private static final int ITERATION_COUNT = 20000;
+    private static final int ITERATION_COUNT = 10000;
     private static final int KEY_LENGTH = 256;
     private static final int IV_LENGTH = 16;
+    private static final int KEY_DERIVATION_TIME_MILLISECONDS = 800;
     private static final String PBKDF_2_WITH_HMAC_SHA_1 = "PBKDF2WithHmacSHA1";
     private static final String AES = "AES";
     private static final String AES_GCM_NO_PADDING = "AES/GCM/NoPadding";
     private static final String BC = "BC";
+    private static final String UTF_8 = "UTF-8";
 
     // Salt & IV
     private static byte[] createRandomBytes(int keySize) {
@@ -45,16 +48,34 @@ public class SecurityUtils {
         return createRandomBytes(IV_LENGTH);
     }
 
-    // Key Derivation Function
-    public static SecretKey createPBKDF2WithHmacSHA1Key(char[] password, byte[] salt) throws
+    // Generate key for db
+    public static SecretKey createAesKey() throws NoSuchAlgorithmException {
+        KeyGenerator keyGen;
+        keyGen = KeyGenerator.getInstance(AES);
+        keyGen.init(KEY_LENGTH);
+        return keyGen.generateKey();
+    }
+
+    /***************************
+     * Key Derivation Function *
+     ***************************/
+
+    public static SecretKey createPBKDF2WithHmacSHA1Key(char[] password, byte[] salt, int numOfIteration) throws
             NoSuchAlgorithmException, InvalidKeySpecException {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF_2_WITH_HMAC_SHA_1);
-        KeySpec spec = new PBEKeySpec(password, salt, ITERATION_COUNT, KEY_LENGTH);
+        KeySpec spec = new PBEKeySpec(password, salt, numOfIteration, KEY_LENGTH);
         SecretKey tmp = factory.generateSecret(spec);
 
         return new SecretKeySpec(tmp.getEncoded(), AES);
     }
+
+    public static SecretKey createPBKDF2WithHmacSHA1Key(char[] password, byte[] salt) throws
+            NoSuchAlgorithmException, InvalidKeySpecException {
+        return createPBKDF2WithHmacSHA1Key(password, salt, ITERATION_COUNT);
+    }
+
+    // Dynamic time for key
 
     // Encryption method
     public static byte[] encryptWithAesGcm(byte[] plaintext, SecretKey secretKey, byte[] ivBytes) throws
@@ -79,4 +100,5 @@ public class SecurityUtils {
 
         return cipher.doFinal(encryptedText);
     }
+
 }

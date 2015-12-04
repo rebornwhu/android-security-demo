@@ -1,7 +1,7 @@
 package com.example.securitydemo;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 
@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final String UTF_8 = "UTF-8";
+    private static final int[] ITERATIONS = {5000, 6667, 10000, 20000};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,31 +36,38 @@ public class MainActivity extends AppCompatActivity {
         byte[] salt = SecurityUtils.createSalt();
         byte[] iv = SecurityUtils.createIv();
 
-        // Setup text and password;
-        String clearText = "Android is better than iOS";
-        char[] password = "Shawn".toCharArray();
-
-        byte[] plainText;
+        // Create db key
+        SecretKey dbKey = null;
         try {
-             plainText = clearText.getBytes(UTF_8);
-        } catch (UnsupportedEncodingException e) {
-            Log.e(TAG, "onCreate: ", e);
-            return;
+            dbKey = SecurityUtils.createAesKey();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
 
+        // Setup text and password;
+        if (dbKey == null)
+            return;
+
+        char[] password = "252525".toCharArray();
+
+        byte[] plainText = dbKey.getEncoded();
+
+
         // Create key
+        TimeLogger timeLogger = new TimeLogger();
         SecretKey secretKey;
         try {
-            secretKey = SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt);
+            for (int iteration : ITERATIONS) {
+                timeLogger.start();
+                secretKey = SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt, iteration);
+                timeLogger.end(""+iteration);
+            }
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             Log.e(TAG, "onCreate: ", e);
             return;
         }
 
-        // Convert secret key to text
-        String keyText = Base64.encodeToString(secretKey.getEncoded(), Base64.DEFAULT);
-
-        // Encrypt
+        /*// Encrypt
         byte[] encryptedText;
         try {
             encryptedText = SecurityUtils.encryptWithAesGcm(plainText, secretKey, iv);
@@ -82,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         if (Arrays.equals(plainText, decryptedText))
             Log.i(TAG, "onCreate: decrypted text matches plaintext");
         else
-            Log.i(TAG, "onCreate: decrypted text doesn't match plaintext");
+            Log.i(TAG, "onCreate: decrypted text doesn't match plaintext");*/
     }
 
 
@@ -95,5 +103,23 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("CRYPTO", "  algorithm: " + service.getAlgorithm());
             }
         }
+    }
+
+
+    // Helper methods
+    private static String encodeBytesToString(byte[] bytes) {
+        return Base64.encodeToString(bytes, Base64.DEFAULT);
+    }
+
+    private static byte[] decodeStringToBytes(String string) {
+        return Base64.decode(string, Base64.DEFAULT);
+    }
+
+    private static byte[] stringToBytes(String string) throws UnsupportedEncodingException {
+        return string.getBytes(UTF_8);
+    }
+
+    private static String bytesToString(byte[] bytes) throws UnsupportedEncodingException {
+        return new String(bytes, UTF_8);
     }
 }
