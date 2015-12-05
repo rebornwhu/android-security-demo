@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         // Calc ideal iteration
         try {
             for (int i = 0; i < 10; i++) {
-                int iteration = SecurityUtils.iterationsForPBKDF(password, salt, 800);
+                int iteration = SecurityUtils.iterationsForPBKDF(password, salt);
                 int duration = calcDuration(password, salt, iteration);
                 Log.i(TAG, "iteration: " + iteration + "| duration: " + duration);
             }

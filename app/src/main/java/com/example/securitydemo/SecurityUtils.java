@@ -21,6 +21,11 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class SecurityUtils {
 
+    private static final int IDEAL_DURAION = 800;
+    private static final int IDEAL_NUM_OF_ITERATIONS = 10000;
+    private static final int LOWER_BOUND_OF_ITERATIONS = 4000;
+    private static final int UPPER_BOUND_OF_ITERATIONS = 20000;
+
     private static final int ITERATION_COUNT = 10000;
     private static final int KEY_LENGTH = 256;
     private static final int IV_LENGTH = 16;
@@ -76,21 +81,21 @@ public class SecurityUtils {
     }
 
     // Dynamic time for PBKDF
-    public static int iterationsForPBKDF(char[] password, byte[] salt, int idealDuration)
+    public static int iterationsForPBKDF(char[] password, byte[] salt)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
 
-        int duration1 = durationForPBKDF(password, salt, 10000);
-        if (duration1 > idealDuration) { // Taking too long
-            int duration2 = durationForPBKDF(password, salt, 4000);
-            double slope  = calcSlope(4000, duration2, 10000, duration1);
-            double baseDuration = calcBaseY(slope, 4000, duration2);
-            return (int) ((idealDuration - baseDuration) / slope);
+        int duration1 = durationForPBKDF(password, salt, IDEAL_NUM_OF_ITERATIONS);
+        if (duration1 > IDEAL_DURAION) { // Taking too long
+            int duration2 = durationForPBKDF(password, salt, LOWER_BOUND_OF_ITERATIONS);
+            double slope  = calcSlope(LOWER_BOUND_OF_ITERATIONS, duration2, IDEAL_NUM_OF_ITERATIONS, duration1);
+            double baseDuration = calcBaseY(slope, LOWER_BOUND_OF_ITERATIONS, duration2);
+            return (int) ((IDEAL_DURAION - baseDuration) / slope);
         }
         else { // Got extra time
-            int duration2 = durationForPBKDF(password, salt, 20000);
-            double slope = calcSlope(10000, duration1, 20000, duration2);
-            double baseDuration = calcBaseY(slope, 10000, duration1);
-            return (int) ((idealDuration - baseDuration) / slope);
+            int duration2 = durationForPBKDF(password, salt, UPPER_BOUND_OF_ITERATIONS);
+            double slope = calcSlope(IDEAL_NUM_OF_ITERATIONS, duration1, UPPER_BOUND_OF_ITERATIONS, duration2);
+            double baseDuration = calcBaseY(slope, IDEAL_NUM_OF_ITERATIONS, duration1);
+            return (int) ((IDEAL_DURAION - baseDuration) / slope);
         }
     }
 
