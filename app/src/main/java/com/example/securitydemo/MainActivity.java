@@ -6,20 +6,12 @@ import android.util.Base64;
 import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
@@ -49,20 +41,29 @@ public class MainActivity extends AppCompatActivity {
         if (dbKey == null)
             return;
 
-        char[] password = "252525".toCharArray();
+        char[] password = "375192".toCharArray();
 
         byte[] plainText = dbKey.getEncoded();
 
-        // Gether durations from 4K to 20K
-        SecretKey secretKey;
+        // Calc ideal iteration
         try {
-            for (int i = 0; i < 5; i++) {
-                calcDurationForIterations(salt, password);
+            for (int i = 0; i < 10; i++) {
+                int iteration = SecurityUtils.iterationsForPBKDF(password, salt, 800);
+                int duration = calcDuration(password, salt, iteration);
+                Log.i(TAG, "iteration: " + iteration + "| duration: " + duration);
             }
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            Log.e(TAG, "onCreate: ", e);
-            return;
+            e.printStackTrace();
         }
+
+        /*// Gether durations from 4K to 20K
+        SecretKey secretKey;
+        try {
+            for (int i = 0; i < 5; i++)
+                experimentDurations(salt, password);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            Log.e(TAG, "onCreate: ", e);
+        }*/
 
         /*// Encrypt
         byte[] encryptedText;
@@ -90,21 +91,26 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "onCreate: decrypted text doesn't match plaintext");*/
     }
 
-    private void calcDurationForIterations(byte[] salt, char[] password)
+    private static void experimentDurations(char[] password, byte[] salt)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         StringBuilder sb = new StringBuilder();
 
         int numOfIterations = 4000;
         while (numOfIterations <= 20000) {
-            long startTime = System.currentTimeMillis();
-            SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt, numOfIterations);
-            int duration = (int) (System.currentTimeMillis() - startTime);
+            int duration = calcDuration(password, salt, numOfIterations);
 
             sb.append(duration).append("\t");
 
             numOfIterations += 1000;
         }
-        Log.i(TAG, "calcDurationForIterations: " + sb.toString());
+        Log.i(TAG, "experimentDurations: " + sb.toString());
+    }
+
+    private static int calcDuration(char[] password, byte[] salt, int numOfIterations)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        long startTime = System.currentTimeMillis();
+        SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt, numOfIterations);
+        return (int) (System.currentTimeMillis() - startTime);
     }
 
 
