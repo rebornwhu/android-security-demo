@@ -13,6 +13,7 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -25,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final String UTF_8 = "UTF-8";
-    private static final int[] ITERATIONS = {5000, 6667, 10000, 20000};
+    private static final int[] ITERATIONS = {4000, 5000, 6000, 18000, 19000, 20000};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,15 +53,11 @@ public class MainActivity extends AppCompatActivity {
 
         byte[] plainText = dbKey.getEncoded();
 
-
-        // Create key
-        TimeLogger timeLogger = new TimeLogger();
+        // Gether durations from 4K to 20K
         SecretKey secretKey;
         try {
-            for (int iteration : ITERATIONS) {
-                timeLogger.start();
-                secretKey = SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt, iteration);
-                timeLogger.end(""+iteration);
+            for (int i = 0; i < 5; i++) {
+                calcDurationForIterations(salt, password);
             }
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             Log.e(TAG, "onCreate: ", e);
@@ -91,6 +88,23 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "onCreate: decrypted text matches plaintext");
         else
             Log.i(TAG, "onCreate: decrypted text doesn't match plaintext");*/
+    }
+
+    private void calcDurationForIterations(byte[] salt, char[] password)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        StringBuilder sb = new StringBuilder();
+
+        int numOfIterations = 4000;
+        while (numOfIterations <= 20000) {
+            long startTime = System.currentTimeMillis();
+            SecurityUtils.createPBKDF2WithHmacSHA1Key(password, salt, numOfIterations);
+            int duration = (int) (System.currentTimeMillis() - startTime);
+
+            sb.append(duration).append("\t");
+
+            numOfIterations += 1000;
+        }
+        Log.i(TAG, "calcDurationForIterations: " + sb.toString());
     }
 
 

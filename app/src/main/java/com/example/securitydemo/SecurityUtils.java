@@ -24,7 +24,7 @@ public class SecurityUtils {
     private static final int ITERATION_COUNT = 10000;
     private static final int KEY_LENGTH = 256;
     private static final int IV_LENGTH = 16;
-    private static final int KEY_DERIVATION_TIME_MILLISECONDS = 800;
+    private static final int EXPECTED_PBKDF_TIME = 800;
     private static final String PBKDF_2_WITH_HMAC_SHA_1 = "PBKDF2WithHmacSHA1";
     private static final String AES = "AES";
     private static final String AES_GCM_NO_PADDING = "AES/GCM/NoPadding";
@@ -75,7 +75,39 @@ public class SecurityUtils {
         return createPBKDF2WithHmacSHA1Key(password, salt, ITERATION_COUNT);
     }
 
-    // Dynamic time for key
+    // Dynamic time for PBKDF
+    public static int iterationsForPBKDF(char[] password, byte[] salt, int idealDuration)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+
+        int duration1 = durationForPBKDF(password, salt, 10000);
+        if (duration1 > idealDuration) { // Taking too long
+            int duration2 = durationForPBKDF(password, salt, 4000);
+            double slope  = calcSlope(4000, duration2, 10000, duration1);
+            double baseDuration = calcBaseY(slope, 4000, duration2);
+            return (int) ((idealDuration - baseDuration) / slope);
+        }
+        else { // Got extra time
+            int duration2 = durationForPBKDF(password, salt, 20000);
+            double slope = calcSlope(10000, duration1, 20000, duration2);
+            double baseDuration = calcBaseY(slope, 10000, duration1);
+            return (int) ((idealDuration - baseDuration) / slope);
+        }
+    }
+
+    private static double calcSlope(int x1, int y1, int x2, int y2) {
+        return (double) ((y2 - y1) / (x2 - x1));
+    }
+
+    private static double calcBaseY(double slope, int x, int y) {
+        return y - x * slope;
+    }
+
+    private static int durationForPBKDF(char[] password, byte[] salt, int numOfIterations)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        long startTime = System.currentTimeMillis();
+        createPBKDF2WithHmacSHA1Key(password, salt, numOfIterations);
+        return (int) (System.currentTimeMillis() - startTime);
+    }
 
     // Encryption method
     public static byte[] encryptWithAesGcm(byte[] plaintext, SecretKey secretKey, byte[] ivBytes) throws
