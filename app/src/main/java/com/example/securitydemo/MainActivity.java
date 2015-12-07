@@ -45,7 +45,13 @@ public class MainActivity extends AppCompatActivity {
 
         byte[] plainText = dbKey.getEncoded();
 
-        // Calc ideal iteration
+
+        for (int i = 0; i < 10; i++) {
+            char[] tmp = SecurityUtils.createRandomPassword();
+            Log.i(TAG, "onCreate: " + String.valueOf(tmp));
+        }
+
+        /*// Calc ideal iteration
         try {
             for (int i = 0; i < 10; i++) {
                 int iteration = SecurityUtils.iterationsForPBKDF(password, salt);
@@ -54,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
-        }
+        }*/
 
         /*// Gether durations from 4K to 20K
         SecretKey secretKey;

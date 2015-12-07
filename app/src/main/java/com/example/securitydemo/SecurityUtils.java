@@ -7,6 +7,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -21,7 +22,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class SecurityUtils {
 
-    private static final int IDEAL_DURAION = 800;
+    private static final int IDEAL_DURATION = 800;
     private static final int IDEAL_NUM_OF_ITERATIONS = 10000;
     private static final int LOWER_BOUND_OF_ITERATIONS = 4000;
     private static final int UPPER_BOUND_OF_ITERATIONS = 20000;
@@ -65,8 +66,8 @@ public class SecurityUtils {
      * Key Derivation Function *
      ***************************/
 
-    public static SecretKey createPBKDF2WithHmacSHA1Key(char[] password, byte[] salt, int numOfIteration) throws
-            NoSuchAlgorithmException, InvalidKeySpecException {
+    public static SecretKey createPBKDF2WithHmacSHA1Key(char[] password, byte[] salt, int numOfIteration)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF_2_WITH_HMAC_SHA_1);
         KeySpec spec = new PBEKeySpec(password, salt, numOfIteration, KEY_LENGTH);
@@ -85,17 +86,17 @@ public class SecurityUtils {
             throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         int duration1 = durationForPBKDF(password, salt, IDEAL_NUM_OF_ITERATIONS);
-        if (duration1 > IDEAL_DURAION) { // Taking too long
+        if (duration1 > IDEAL_DURATION) { // Taking too long
             int duration2 = durationForPBKDF(password, salt, LOWER_BOUND_OF_ITERATIONS);
             double slope  = calcSlope(LOWER_BOUND_OF_ITERATIONS, duration2, IDEAL_NUM_OF_ITERATIONS, duration1);
             double baseDuration = calcBaseY(slope, LOWER_BOUND_OF_ITERATIONS, duration2);
-            return (int) ((IDEAL_DURAION - baseDuration) / slope);
+            return (int) ((IDEAL_DURATION - baseDuration) / slope);
         }
         else { // Got extra time
             int duration2 = durationForPBKDF(password, salt, UPPER_BOUND_OF_ITERATIONS);
             double slope = calcSlope(IDEAL_NUM_OF_ITERATIONS, duration1, UPPER_BOUND_OF_ITERATIONS, duration2);
             double baseDuration = calcBaseY(slope, IDEAL_NUM_OF_ITERATIONS, duration1);
-            return (int) ((IDEAL_DURAION - baseDuration) / slope);
+            return (int) ((IDEAL_DURATION - baseDuration) / slope);
         }
     }
 
@@ -105,6 +106,12 @@ public class SecurityUtils {
 
     private static double calcBaseY(double slope, int x, int y) {
         return y - x * slope;
+    }
+
+    public static char[] createRandomPassword() {
+        Random random = new Random();
+        int testPin = (int) (100000 + random.nextFloat() * 900000);
+        return (Integer.toString(testPin)).toCharArray();
     }
 
     private static int durationForPBKDF(char[] password, byte[] salt, int numOfIterations)
